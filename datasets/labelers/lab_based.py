@@ -142,9 +142,8 @@ class HyperkalemiaQuery(LabelQuery):
             ,severe as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_high as {labeler_id}_abnormal_threshold
         FROM max_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
@@ -294,9 +293,8 @@ class HypoglycemiaQuery(LabelQuery):
             ,severe as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_low as {labeler_id}_abnormal_threshold
         FROM min_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
@@ -496,9 +494,8 @@ class AcuteKidneyInjuryQuery(LabelQuery):
             ,severe as {labeler_id}_aki3_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_high as {labeler_id}_abnormal_threshold
         FROM max_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
@@ -637,9 +634,8 @@ class HyponatremiaQuery(LabelQuery):
             ,severe as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_low as {labeler_id}_abnormal_threshold
         FROM min_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
@@ -789,9 +785,8 @@ class AnemiaQuery(LabelQuery):
             ,severe as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_low as {labeler_id}_abnormal_threshold
         FROM min_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
@@ -1143,9 +1138,8 @@ class ThrombocytopeniaQuery(LabelQuery):
             ,severe as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_range_label
-            ,range_low as {labeler_id}_range_low
-            ,range_high as {labeler_id}_range_high
+            ,abnormal_range as {labeler_id}_abnormal_label
+            ,range_low as {labeler_id}_abnormal_threshold
         FROM min_measurements 
         FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
