@@ -716,7 +716,7 @@ class AnemiaQuery(LabelQuery):
                 ,case when value_as_number < 120 then 1 else 0 end as mild 
                 ,case when value_as_number < 110 then 1 else 0 end as moderate 
                 ,case when value_as_number < 70 then 1 else 0 end as severe
-                ,case when value_as_number < range_high then 1 else 0 end as abnormal_range
+                ,case when value_as_number < range_low then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
             WHERE measurement_datetime >= admit_date 
