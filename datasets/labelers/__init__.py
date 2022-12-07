@@ -92,7 +92,7 @@ class Labeler:
             MortalityQuery(),
             LOS7Query(),
             ICUAdmissionQuery(),
-            Readmission30Query(),
+            #Readmission30Query(), # not properly implemented
             HyperkalemiaQuery(),
             HypoglycemiaQuery(),
             NeutropeniaQuery(),
@@ -195,44 +195,6 @@ class Labeler:
         """
         
         return q_main
-                        
-#             if c == 0:
-                
-#                 q += f"""
-#                     WITH {labeler_id} AS (
-#                         {i_q}
-#                     ),
-#                 """
-                
-#                 end_q += """
-#                     cohort_with_labels AS (
-#                         SELECT *
-#                         FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} 
-#                         LEFT JOIN {labeler_id} USING (person_id, {window_start_field}, {window_end_field})
-#                 """.format_map({**self.config, **query.config})
-#             else:
-#                 q += f"""
-#                     {labeler_id} AS (
-#                         {i_q}
-#                     ),
-#                 """
-                
-#                 end_q += """
-#                         LEFT JOIN {labeler_id} USING (person_id, {window_start_field}, {window_end_field})
-#                 """.format_map({**self.config, **query.config})
-                
-        
-#         formatted_q = q + end_q + """
-#                     )
-#                     SELECT FARM_FINGERPRINT(GENERATE_UUID()) as {row_id}
-#                         ,* 
-#                     FROM cohort_with_labels
-#         """.format_map({**self.config, **query.config})
-        
-#         return """ 
-#             CREATE OR REPLACE TABLE {rs_dataset_project}.{rs_dataset}.{target_table_name} AS
-#             {query}
-#         """.format_map({**self.config, "query":formatted_q})
             
         
     def create_label_table(self, labeler_ids:list=None, exclude_labeler_ids:list=None):
