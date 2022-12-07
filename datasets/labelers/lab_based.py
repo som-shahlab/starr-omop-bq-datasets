@@ -76,8 +76,8 @@ class HyperkalemiaQuery(LabelQuery):
                 ,case when value_as_number > range_high then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field}  
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number > 5.5 OR value_as_number > range_high)
         ),
         mild as (
@@ -133,22 +133,23 @@ class HyperkalemiaQuery(LabelQuery):
             ,max_potassium as {labeler_id}_max_potassium
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_high as {labeler_id}_abnormal_threshold
-        FROM max_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN max_measurements using (person_id, {window_start_field}, {window_end_field}) 
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
         
         
@@ -227,8 +228,8 @@ class HypoglycemiaQuery(LabelQuery):
                 ,case when value_as_number < range_low then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field} 
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number <= 3.9 OR value_as_number < range_low)
         ),
         mild as (
@@ -284,22 +285,23 @@ class HypoglycemiaQuery(LabelQuery):
             ,hg_min_glucose as {labeler_id}_min_glucose
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_low as {labeler_id}_abnormal_threshold
-        FROM min_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
 
 
@@ -485,22 +487,23 @@ class AcuteKidneyInjuryQuery(LabelQuery):
             ,aki_max_creatinine as {labeler_id}_max_creatinine
             ,first_mild.value_as_number as {labeler_id}_aki1_measurement
             ,first_mild.measurement_datetime as {labeler_id}_aki1_measurement_datetime
-            ,mild as {labeler_id}_aki1_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_aki1_label
             ,first_moderate.value_as_number as {labeler_id}_aki2_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_aki2_measurement_datetime
-            ,moderate as {labeler_id}_aki2_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_aki2_label
             ,first_severe.value_as_number as {labeler_id}_aki3_measurement
             ,first_severe.measurement_datetime as {labeler_id}_aki3_measurement_datetime
-            ,severe as {labeler_id}_aki3_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_aki3_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_high as {labeler_id}_abnormal_threshold
-        FROM max_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN max_measurements using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
     
     
@@ -568,8 +571,8 @@ class HyponatremiaQuery(LabelQuery):
                 ,case when value_as_number < range_low then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field} 
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number <= 135 OR value_as_number < range_low)
         ),
         mild as (
@@ -625,22 +628,23 @@ class HyponatremiaQuery(LabelQuery):
             ,hn_min_sodium as {labeler_id}_min_sodium
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_low as {labeler_id}_abnormal_threshold
-        FROM min_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
     
     
@@ -719,8 +723,8 @@ class AnemiaQuery(LabelQuery):
                 ,case when value_as_number < range_low then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field} 
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number < 120 OR value_as_number < range_low)
         ),
         mild as (
@@ -776,22 +780,23 @@ class AnemiaQuery(LabelQuery):
             ,anemia_min_hgb as {labeler_id}_min_hgb
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_low as {labeler_id}_abnormal_threshold
-        FROM min_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field}) 
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
     
     
@@ -949,8 +954,8 @@ class NeutropeniaQuery(LabelQuery):
                 ,case when value_as_number < 0.500 then 1 else 0 end as severe
                 ,measurement_datetime
             FROM all_measurements_transformed
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field} 
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number < 1.5)
         ),
         mild as (
@@ -993,17 +998,18 @@ class NeutropeniaQuery(LabelQuery):
             ,np_min_neutrophils as {labeler_id}_min_neutrophils
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
-        FROM min_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
         """
 
     
@@ -1072,8 +1078,8 @@ class ThrombocytopeniaQuery(LabelQuery):
                 ,case when value_as_number < range_low then 1 else 0 end as abnormal_range
                 ,measurement_datetime
             FROM all_measurements
-            WHERE measurement_datetime >= admit_date 
-                AND measurement_datetime <= discharge_date 
+            WHERE measurement_datetime >= {window_start_field} 
+                AND measurement_datetime <= {window_end_field} 
                 AND (value_as_number < 150 OR value_as_number < range_low)
         ),
         mild as (
@@ -1129,20 +1135,21 @@ class ThrombocytopeniaQuery(LabelQuery):
             ,tc_min_platelet as {labeler_id}_min_platelet
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
             ,first_mild.measurement_datetime as {labeler_id}_mild_measurement_datetime
-            ,mild as {labeler_id}_mild_label
+            ,case when mild is null then 0 else mild end as {labeler_id}_mild_label
             ,first_moderate.value_as_number as {labeler_id}_moderate_measurement
             ,first_moderate.measurement_datetime as {labeler_id}_moderate_measurement_datetime
-            ,moderate as {labeler_id}_moderate_label
+            ,case when moderate is null then 0 else moderate end as {labeler_id}_moderate_label
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
-            ,severe as {labeler_id}_severe_label
+            ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
             ,first_abnormal_range.value_as_number as {labeler_id}_abnormal_measurement
             ,first_abnormal_range.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
-            ,abnormal_range as {labeler_id}_abnormal_label
+            ,case when abnormal_range is null then 0 else abnormal_range end as {labeler_id}_abnormal_label
             ,range_low as {labeler_id}_abnormal_threshold
-        FROM min_measurements 
-        FULL OUTER JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
-        FULL OUTER JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
+        FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
+        LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal_range using (person_id, {window_start_field}, {window_end_field})
         """
