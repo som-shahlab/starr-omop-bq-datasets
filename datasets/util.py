@@ -70,7 +70,7 @@ def overwrite_dir(the_path, overwrite=True):
 
 def read_file(
     filename, columns=None, load_extension="parquet", mode="pandas", **kwargs
-):
+    ):
 
     if mode == "pandas":
         if load_extension == "parquet":
@@ -84,3 +84,101 @@ def read_file(
             return pd.read_csv(filename, usecols=columns, **kwargs)
     else:
         raise ValueError('"pandas" and "dask" are the only allowable modes')
+
+        
+def bq_extract_flowsheets_from_observations(
+    bq_dataset:str,
+    target_bq_dataset:str, 
+    target_bq_table:str,
+    bq_project:str='som-nero-nigam-starr',
+    target_bq_project:str='som-nero-nigam-starr',
+    flowsheet_concept_id:str='2000006253',
+    overwrite:bool=False,
+    ):
+    """
+    Construct a BigQuery SQL that extracts flowsheet rows stored as JSON in the OMOP 
+    observation table and loads the extracted rows to a target BigQuery
+    table. 
+    
+    flowsheet_concept_id is the custom concept_id that indicates that a row associated
+    with the observation_id contains the flowsheet JSON. 
+    
+    Important note: the extract is large (>4.5B rows)
+    """
+    
+    if overwrite:
+        q_create = f"create or replace table `{target_bq_project}.{target_bq_dataset}.{target_bq_table}` as"
+    else:
+        q_create = f"create table if not exists `{target_bq_project}.{target_bq_dataset}.{target_bq_table}` as"
+    
+    return f"""
+    {q_create} 
+    (
+    with meas as (
+      select observation_id, 
+      json_extract_scalar(v, '$.source') as val_source,
+      json_extract_scalar(v, '$.value') as val_value
+      FROM `{bq_project}.{bq_dataset}.observation` ob 
+      left join unnest(json_extract_array(value_as_string,'$.values')) as v
+      where ob.observation_concept_id = {flowsheet_concept_id}
+      and JSON_VALUE(v,'$.source') = "ip_flwsht_meas.meas_value"
+    ),
+    disp as (
+      select observation_id, 
+      json_extract_scalar(v, '$.source') as val_source,
+      json_extract_scalar(v, '$.value') as val_value
+      FROM `{bq_project}.{bq_dataset}.observation` ob 
+      left join unnest(json_extract_array(value_as_string,'$.values')) as v
+      where ob.observation_concept_id = {flowsheet_concept_id}
+      and JSON_VALUE(v,'$.source') = "ip_flo_gp_data.disp_name"
+    ),
+    unit as (
+      select observation_id, 
+      json_extract_scalar(v, '$.source') as val_source,
+      json_extract_scalar(v, '$.value') as val_value
+      FROM `{bq_project}.{bq_dataset}.observation` ob 
+      left join unnest(json_extract_array(value_as_string,'$.values')) as v
+      where ob.observation_concept_id = {flowsheet_concept_id}
+      and JSON_VALUE(v,'$.source') = "ip_flo_gp_data.units"
+    ),
+    src as (
+      select observation_id, 
+      json_extract_scalar(v, '$.source') as val_source,
+      json_extract_scalar(v, '$.value') as val_value
+      FROM `{bq_project}.{bq_dataset}.observation` ob 
+      left join unnest(json_extract_array(observation_source_value,'$.values')) as v
+      where ob.observation_concept_id = {flowsheet_concept_id}
+      and JSON_VALUE(v,'$.source') = "ip_flt_data.display_name"
+    )
+    select ob.observation_id, ob.person_id, ob.observation_datetime,
+    case 
+      when ob.observation_concept_id = {flowsheet_concept_id}
+        then src.val_value 
+      else ob.observation_source_value
+    END as source_display_name,
+    case 
+      when ob.observation_concept_id = {flowsheet_concept_id}
+        then disp.val_value
+      else cpt.concept_name
+    END as display_name,
+    case 
+      when ob.observation_concept_id = {flowsheet_concept_id}
+        then meas.val_value
+      when ob.observation_concept_id <> {flowsheet_concept_id} and value_as_string is not null
+        then value_as_string
+      when ob.observation_concept_id <> {flowsheet_concept_id} and value_as_string is null
+        then CAST(value_as_number as string)
+    END as meas_value,
+    case 
+      when ob.observation_concept_id = {flowsheet_concept_id}
+        then unit.val_value
+      else ob.unit_source_value
+    END as units,
+    from `{bq_project}.{bq_dataset}.observation` ob 
+    left join meas on ob.observation_id = meas.observation_id
+    left join unit on ob.observation_id = unit.observation_id 
+    left join disp on ob.observation_id = disp.observation_id
+    left join src on ob.observation_id = src.observation_id
+    left join `{bq_project}.{bq_dataset}.concept` cpt on cpt.concept_id = ob.observation_source_concept_id
+    );
+    """

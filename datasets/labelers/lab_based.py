@@ -6,9 +6,28 @@ class HyperkalemiaQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for hyperkalemia using blood potassium concentration (mmol/L). Thresholds: mild(>5.5),moderate(>6),severe(>7), and abnormal range.',
             "labeler_id":'hyperkalemia_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64) as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND lower(f.display_name) like '%potassium%'
+                AND lower(f.units) = 'mmol/l'
+                AND lower(f.source_display_name) like '%lab%'
+            """
+        
         return """
         WITH measurement_concepts as 
         (
@@ -53,6 +72,7 @@ class HyperkalemiaQuery(LabelQuery):
               )
             INNER JOIN measurement_concepts mc 
               ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         max_measurements as 
         (
@@ -158,9 +178,29 @@ class HypoglycemiaQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for hypoglycemia using blood glucose concentration (mmol/L). Thresholds: mild(<3), moderate(<3.5), severe(<=3.9), and abnormal range.',
             "labeler_id":'hypoglycemia_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64)/18 as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND lower(f.display_name) like '%glucose%'
+                AND lower(f.units) = 'mg/dl' --divide by 18 to get mmol/L
+                AND lower(f.source_display_name) like '%lab%'
+            """
+        
         return """
         WITH measurement_concepts as 
         (
@@ -205,6 +245,7 @@ class HypoglycemiaQuery(LabelQuery):
               )
             INNER JOIN measurement_concepts mc 
               ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         min_measurements as 
         (
@@ -310,9 +351,28 @@ class AcuteKidneyInjuryQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for acute kidney injury based on blood creatinine levels (umol/L) according to KDIGO (stages 1,2, and 3), and abnormal range.',
             "labeler_id":'aki_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64)/ 0.0113122  as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND lower(f.display_name) like '%creatinine%'
+                AND lower(f.units) = 'mg/dl' -- divide by 0.0113122 to get umol/L 
+                AND lower(f.source_display_name) like '%lab%'
+            """
+        
         return """
         WITH measurement_concepts as (
             SELECT 
@@ -356,6 +416,7 @@ class AcuteKidneyInjuryQuery(LabelQuery):
               )
         INNER JOIN measurement_concepts mc 
             ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         -- GET BASELINE CREATININE MEASUREMENTS (MIN MEASUREMENT BETWEEN ADMISSION TIME AND 3 MONTHS PRIOR)
         base_3month as (
@@ -512,9 +573,28 @@ class HyponatremiaQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for hyponatremia based on blood sodium concentration (mmol/L). Thresholds: mild (<=135),moderate(<130),severe(<125), and abnormal range.',
             "labeler_id":'hyponatremia_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64) as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND lower(f.display_name) like '%sodium%'
+                AND lower(f.units) = 'mmol/l'
+                AND lower(f.source_display_name) like '%lab%'
+            """
+        
         return """
         WITH measurement_concepts as 
         (
@@ -548,6 +628,7 @@ class HyponatremiaQuery(LabelQuery):
               )
             INNER JOIN measurement_concepts mc 
               ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         min_measurements as 
         (
@@ -653,9 +734,31 @@ class AnemiaQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for anemia based on hemoglobin levels (g/L). Thresholds: mild(<120),moderate(<110),severe(<70), and reference range',
             "labeler_id":'anemia_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64)*10 as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND (
+                    lower(f.display_name) like '%hemoglobin%'
+                    OR lower(f.display_name) like '%hgb%'
+                )
+                AND lower(f.units) = 'g/dl'
+                AND lower(f.source_display_name) like '%lab%'
+            """
+            
         return """
         WITH measurement_concepts as 
         (
@@ -700,6 +803,7 @@ class AnemiaQuery(LabelQuery):
               )
             INNER JOIN measurement_concepts mc 
               ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         min_measurements as 
         (
@@ -812,24 +916,26 @@ class NeutropeniaQuery(LabelQuery):
         -- WBC (LEUKOCYTES)
         WITH wbc_concepts as 
         (
-            -- Use 3010813
-            -- 3000905 has unusual distribution
             SELECT 
                 c.concept_id, 'wbc' as concept_name
             FROM `{dataset_project}.{dataset}.concept` c
-            WHERE concept_id = 3010813       
+            WHERE concept_id IN (3000905, 4298431, 3010813)       
         ),
         all_wbc as 
         (
           SELECT t1.*
               ,m.measurement_datetime
-              ,m.value_as_number as wbc
+              ,CASE
+                  WHEN unit_concept_id = 8647 THEN m.value_as_number/1000
+                  ELSE m.value_as_number
+              END as wbc
           FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
           LEFT JOIN `{dataset_project}.{dataset}.measurement` m 
               ON t1.person_id = m.person_id
               AND m.unit_concept_id IN (
                 8848,  -- 1000/uL
-                8961  -- 1000/mm^3, equivalent to 8848
+                8961,  -- 1000/mm^3, equivalent to 8848
+                8647   -- /uL - divide by 1000 to convert to 1000/uL
               )
           INNER JOIN wbc_concepts mc 
               on m.measurement_concept_id = mc.concept_id
@@ -1018,9 +1124,31 @@ class ThrombocytopeniaQuery(LabelQuery):
         return {
             "labeler_info":'lab-based definition for thrombocytopenia based on platelet count (10^9/L). Thresholds: mild (<150), moderate(<100), severe(<50), and reference range.',
             "labeler_id":'thrombocytopenia_lab',
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
         }
     
     def get_base_query(self):
+        q_f = ""
+        if self.config['extract_labs_from_flowsheets']:
+            q_f+="""
+            UNION ALL
+            SELECT t1.*
+                ,f.observation_datetime as measurement_datetime
+                ,CAST(f.meas_value AS FLOAT64) as value_as_number
+                ,NULL as range_low
+                ,NULL as range_high
+            FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
+            LEFT JOIN `{rs_dataset_project}.{rs_dataset}.{flowsheets_extract_name}` f
+                ON t1.person_id=f.person_id
+                AND (
+                    lower(f.display_name) like '%platelet%'
+                    OR lower(f.display_name) like '%plt%'
+                )
+                AND lower(f.units) = 'k/ul'
+                AND lower(f.source_display_name) like '%lab%'
+            """
+        
         return """
         WITH measurement_concepts as 
         (
@@ -1055,6 +1183,7 @@ class ThrombocytopeniaQuery(LabelQuery):
               )
             INNER JOIN measurement_concepts mc 
               ON m.measurement_concept_id = mc.concept_id
+        """ + q_f + """
         ),
         min_measurements as 
         (

@@ -3,6 +3,7 @@ import random
 import string  
 
 from ..database import Database
+from ..util import bq_extract_flowsheets_from_observations
 
 from .demographics import (
     AgeQuery, SexQuery, RaceQuery
@@ -29,6 +30,7 @@ from .dx_based import (
 class Labeler:
     def __init__(self, *args, **kwargs):
         self.config = self.get_config(**kwargs)
+        self.check_config()
         self.db = Database(**self.config)
         self.queries = self.get_queries()
         
@@ -48,6 +50,10 @@ class Labeler:
             'window_start_field':'admit_date',
             'window_end_field':'discharge_date',
             'temp_dataset': "temp",
+            'extract_labs_from_flowsheets':False, 
+            'flowsheets_extract_name':None,
+            'overwrite_flowsheets_extract':False,
+            'flowsheet_concept_id':'2000006253',
         }
     
     def override_default_config(self, **kwargs):
@@ -76,6 +82,9 @@ class Labeler:
         )
         
         return config
+    
+    def check_config(self):
+        ...
             
     def configure(self, **kwargs):
         self.config = {**self.config, **kwargs}
@@ -154,6 +163,17 @@ class Labeler:
         q_join = ""
         q_cleanup = ""
         
+        if self.config['extract_labs_from_flowsheets']:
+            q_main+=bq_extract_flowsheets_from_observations(
+                bq_project = self.config['dataset_project'],
+                bq_dataset = self.config['dataset'],
+                target_bq_project = self.config['rs_dataset_project'],
+                target_bq_dataset = self.config['rs_dataset'],
+                target_bq_table = self.config['flowsheets_extract_name'],
+                flowsheet_concept_id = self.config['flowsheet_concept_id'],
+                overwrite = self.config['overwrite_flowsheets_extract'],
+            )
+        
         rs_dataset_project = self.config['rs_dataset_project']
         rs_dataset = self.config['rs_dataset']
         temp_dataset = self.config['temp_dataset']
@@ -167,6 +187,10 @@ class Labeler:
         # create temp label table for each task
         for labeler_id, query in queries.items():
             
+            if self.config['extract_labs_from_flowsheets']:
+                query.config = {**query.config, **self.config}
+                query.base_query = query.get_base_query()
+                
             i_q = query.base_query.format_map({**self.config, **query.config})
             
             q_main += f"""
