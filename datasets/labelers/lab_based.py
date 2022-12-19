@@ -1002,6 +1002,24 @@ class NeutropeniaQuery(LabelQuery):
                       THEN m.value_as_number / 1000
                   ELSE m.value_as_number
               END AS neutrophils_count
+              ,case 
+                  when m.unit_concept_id = 8554 AND m.range_high<=100
+                      THEN m.range_high / 100 * wbc.wbc
+                  WHEN m.unit_concept_id = 8554 AND m.range_high>100
+                      THEN NULL
+                  WHEN m.unit_concept_id = 8784
+                      THEN m.range_high / 1000
+                  else m.range_high
+              end as range_high
+              ,case 
+                  when m.unit_concept_id = 8554 AND m.range_low<=100
+                      THEN m.range_low / 100 * wbc.wbc
+                  WHEN m.unit_concept_id = 8554 AND m.range_low>100
+                      THEN NULL
+                  WHEN m.unit_concept_id = 8784
+                      THEN m.range_low / 1000
+                  else m.range_low
+              end as range_low
             FROM {rs_dataset_project}.{rs_dataset}.{cohort_name} t1
             LEFT JOIN `{dataset_project}.{dataset}.measurement` m 
               ON t1.person_id = m.person_id
@@ -1039,13 +1057,25 @@ class NeutropeniaQuery(LabelQuery):
                     WHEN wbc IS NOT NULL AND neutrophils_count IS NULL AND bands_count IS NULL
                         THEN wbc
                 END AS value_as_number
+                ,range_low, range_high
+            FROM all_measurements
+        ),
+        neutrophils_only_transformed AS 
+        (
+            SELECT person_id, {window_start_field}, {window_end_field}, measurement_datetime
+                ,CASE
+                    WHEN neutrophils_count IS NOT NULL or bands_count IS NOT NULL 
+                        THEN IFNULL(neutrophils_count,0) + IFNULL(bands_count,0)
+                    WHEN wbc IS NOT NULL AND neutrophils_count IS NULL AND bands_count IS NULL
+                        THEN NULL
+                END AS value_as_number
             FROM all_measurements
         ),
         min_measurements AS
         (
             SELECT person_id, {window_start_field}, {window_end_field}
                 ,MIN(value_as_number) AS np_min_neutrophils
-            FROM all_measurements_transformed
+            FROM neutrophils_only_transformed
             WHERE measurement_datetime >= {window_start_field} 
                 AND measurement_datetime <= {window_end_field}
             GROUP BY person_id, {window_start_field}, {window_end_field}
@@ -1058,6 +1088,8 @@ class NeutropeniaQuery(LabelQuery):
                 ,case when value_as_number < 1.5 then 1 else 0 end as mild 
                 ,case when value_as_number < 1 then 1 else 0 end as moderate 
                 ,case when value_as_number < 0.500 then 1 else 0 end as severe
+                ,case when value_as_number < range_low then 1 else 0 end as abnormal
+                ,range_low
                 ,measurement_datetime
             FROM all_measurements_transformed
             WHERE measurement_datetime >= {window_start_field} 
@@ -1097,9 +1129,21 @@ class NeutropeniaQuery(LabelQuery):
             FROM abnormal_measurements 
             WHERE severe = 1
         ),
+        abnormal as (
+            SELECT 
+                person_id, {window_start_field}, {window_end_field}
+                ,value_as_number, measurement_datetime, abnormal, range_low
+                ,ROW_NUMBER() OVER(
+                    PARTITION BY person_id,{window_start_field}, {window_end_field} 
+                    ORDER BY measurement_datetime
+                    ) AS rn
+            FROM abnormal_measurements 
+            WHERE abnormal = 1
+        ),
         first_mild as (select * from mild where rn = 1),
         first_moderate as (select * from moderate where rn = 1),
-        first_severe as (select * from severe where rn = 1)
+        first_severe as (select * from severe where rn = 1),
+        first_abnormal as (select * from abnormal where rn = 1)
         SELECT person_id, {window_start_field}, {window_end_field} 
             ,np_min_neutrophils as {labeler_id}_min_neutrophils
             ,first_mild.value_as_number as {labeler_id}_mild_measurement
@@ -1111,11 +1155,16 @@ class NeutropeniaQuery(LabelQuery):
             ,first_severe.value_as_number as {labeler_id}_severe_measurement
             ,first_severe.measurement_datetime as {labeler_id}_severe_measurement_datetime
             ,case when severe is null then 0 else severe end as {labeler_id}_severe_label
+            ,first_abnormal.value_as_number as {labeler_id}_abnormal_measurement
+            ,first_abnormal.measurement_datetime as {labeler_id}_abnormal_measurement_datetime
+            ,first_abnormal.range_low as {labeler_id}_abnormal_threshold
+            ,case when abnormal is null then 0 else abnormal end as {labeler_id}_abnormal_label
         FROM {rs_dataset_project}.{rs_dataset}.{cohort_name}
         LEFT JOIN min_measurements using (person_id, {window_start_field}, {window_end_field})
         LEFT JOIN first_mild using (person_id, {window_start_field}, {window_end_field})
         LEFT JOIN first_moderate using (person_id, {window_start_field}, {window_end_field})
         LEFT JOIN first_severe using (person_id, {window_start_field}, {window_end_field})
+        LEFT JOIN first_abnormal using (person_id, {window_start_field}, {window_end_field})
         """
 
     
